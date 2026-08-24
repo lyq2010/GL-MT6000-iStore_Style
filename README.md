@@ -17,7 +17,7 @@
 
 ![Privacy](https://img.shields.io/badge/隐私-零云端组件-FF4088?style=flat-square)
 ![Source](https://img.shields.io/badge/来源-全部官方-blueviolet?style=flat-square)
-![Theme](https://img.shields.io/badge/Argon-v2.3.2-7C4DFF?style=flat-square)
+![Theme](https://img.shields.io/badge/Argon-v2.4.7-7C4DFF?style=flat-square)
 ![Repeatable](https://img.shields.io/badge/固件升级后-可一键恢复-orange?style=flat-square)
 [![License](https://img.shields.io/github/license/lyq2010/GL-MT6000-iStore_Style?style=flat-square)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/lyq2010/GL-MT6000-iStore_Style?style=flat-square&logo=github)](https://github.com/lyq2010/GL-MT6000-iStore_Style/stargazers)
@@ -37,7 +37,7 @@
 - 🧩 **iStore 应用商店** + iStoreOS 风格首页（`:8080`）
 - 🎨 **紫色 Argon 主题** —— 来自官方 `jerrykuku` 仓库，非第三方无签名包
 - 🔒 **隐私优先** —— 不改防火墙、不装云端穿透、不劫持 DNS、不写品牌字段
-- 📡 **来源透明** —— iStore 走 `linkease`，主题走 `jerrykuku`，应用走官方源
+- 📡 **来源透明** —— iStore 走 `iStoreOS` 官方源，主题走 `jerrykuku`，应用走官方源
 - ♻️ **可重复执行** —— 固件升级清空后，再跑一遍即可一键恢复
 - 🪶 **纯本地服务** —— 装的应用没有任何会主动向外建隧道的云端组件
 
@@ -58,10 +58,10 @@
 
 | 组件 | 来源 | 版本策略 |
 |------|------|----------|
-| iStore 应用商店（`luci-app-store`） | 官方 `istore.linkease.com` | 🔄 取仓库当前最新 |
+| iStore 应用商店（`luci-app-store`） | 官方 `istore.istoreos.com` | 🔄 取仓库当前最新 |
 | iStore 风格首页（`luci-app-quickstart` + 中文包） | 官方 iStore 源 | 🔄 取最新 |
 | SFTP 底层服务（`openssh-sftp-server`，本地服务） | 官方 OpenWrt 源 | 🔄 取最新 |
-| Argon 主题 + 配置插件 + 中文包 | 官方 `github.com/jerrykuku` | 📌 固定 v2.3.2（见下） |
+| Argon 主题 + 配置插件 | 官方 `github.com/jerrykuku` | 📌 同步固定为 v2.4.7（见下） |
 | 时区 | — | 设为 `Asia/Shanghai`（可自行删） |
 | LuCI 主题 / 语言 | — | 切到 Argon + 中文（仅当主题装好时） |
 
@@ -90,25 +90,25 @@ curl -fsSL https://raw.githubusercontent.com/lyq2010/GL-MT6000-iStore_Style/main
 固件升级（尤其是不保留配置的全新刷写）会**清空 overlay**，iStore、Argon、各应用都会消失 —— 本脚本正是为此设计：**升级后再跑一遍即可一键恢复**。
 
 - iStore 与各应用 → 跟随新固件的源装到对应**最新版**
-- Argon → 装回 **v2.3.2**（opkg 下最新可用版）
+- Argon → 装回脚本固定的 **v2.4.7**
 - SFTP 底层包 `openssh-sftp-server` → 显式装回
 
 > ⚠️ 即便升级时选了「保留配置」，`/etc/config/*` 大多会留下，但**通过 opkg 安装的软件包通常不保留**。建议升级后先确认防火墙等关键配置仍正确，再跑一遍本脚本补齐应用。
 
 ---
 
-## 🎨 关于 Argon 版本（为什么固定 v2.3.2）
+## 🎨 关于 Argon 版本
 
-OpenWrt 自 **25.12** 起把包管理器从 `opkg` 换成了 `apk`。jerrykuku 官方随之调整：
+Argon 上游目前同时发布 `.ipk` 和 `.apk`。你的 GL 官方 OpenWrt 24 仍使用 `opkg`，因此脚本安装同一 Release 中的两个 IPK：
 
-> **自 v2.4.3 起，Argon 只发布 `.apk`，不再提供 `_all.ipk`。**
+- `luci-theme-argon_2.4.7_all.ipk`
+- `luci-app-argon-config_2.4.7_all.ipk`
 
-你的 GL 官方 OpenWrt 24 仍是 **opkg** 体系，因此：
+主题和配置插件保持同一版本，避免新主题搭配旧配置插件产生功能差异。
 
-- ✅ `v2.3.2` 是最后一个带 `_all.ipk` 的版本，也就是 **opkg 下能装的最新 Argon**
-- ❌ 更新的 v2.4.3+ 是 `.apk`，opkg 装不了
+当前 GL/OpenWrt/iStore 的 OP24 软件源没有收录 `luci-theme-argon` 和 `luci-app-argon-config`，jerrykuku 也没有提供可直接交给 opkg 使用的 `Packages.gz` 软件源，因此 Argon 无法像 QuickStart 或 SFTP 那样由软件源自动选择最新版。脚本固定经过核对的版本，避免 GitHub Release 结构或文件名变化导致安装突然失效；升级固定版本前会先核对 Release 资产与 OP24 兼容性。
 
-所以脚本固定 v2.3.2 **不是图省事，而是上游已无更新的 ipk 可取**。等将来 GL 固件升级到 apk 体系（OpenWrt 25.12+），再另行更新。
+> ℹ️ 上游目前没有提供 Argon Config 简体中文翻译的 `.ipk`。因此 OP24 上的 Argon 配置页可能显示英文；主题和配置功能不受影响，脚本不会在 opkg 系统中混装 apk。
 
 ---
 
@@ -167,7 +167,7 @@ rm -f /usr/bin/g
 
 | 项目 | 链接 |
 |------|------|
-| 🛒 iStore | [linkease/istore](https://github.com/linkease/istore)（官方 `istore.linkease.com`） |
+| 🛒 iStore | [linkease/istore](https://github.com/linkease/istore)（官方 `istore.istoreos.com`） |
 | 🎨 Argon 主题 | [jerrykuku/luci-theme-argon](https://github.com/jerrykuku/luci-theme-argon) · [luci-app-argon-config](https://github.com/jerrykuku/luci-app-argon-config) |
 
 ---

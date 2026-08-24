@@ -17,7 +17,7 @@ One command · Official sources · Zero cloud components
 
 ![Privacy](https://img.shields.io/badge/Privacy-zero%20cloud%20components-FF4088?style=flat-square)
 ![Source](https://img.shields.io/badge/Sources-all%20official-blueviolet?style=flat-square)
-![Theme](https://img.shields.io/badge/Argon-v2.3.2-7C4DFF?style=flat-square)
+![Theme](https://img.shields.io/badge/Argon-v2.4.7-7C4DFF?style=flat-square)
 ![Repeatable](https://img.shields.io/badge/after%20firmware%20upgrade-one--shot%20restore-orange?style=flat-square)
 [![License](https://img.shields.io/github/license/lyq2010/GL-MT6000-iStore_Style?style=flat-square)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/lyq2010/GL-MT6000-iStore_Style?style=flat-square&logo=github)](https://github.com/lyq2010/GL-MT6000-iStore_Style/stargazers)
@@ -37,7 +37,7 @@ One command · Official sources · Zero cloud components
 - 🧩 **iStore app store** + iStoreOS-style homepage (`:8080`)
 - 🎨 **Purple Argon theme** — from the official `jerrykuku` repo, not a third-party unsigned package
 - 🔒 **Privacy first** — no firewall changes, no cloud tunneling, no DNS hijacking, no branding fields written
-- 📡 **Transparent sources** — iStore from `linkease`, theme from `jerrykuku`, apps from official sources
+- 📡 **Transparent sources** — iStore from the official `iStoreOS` feed, theme from `jerrykuku`, apps from official sources
 - ♻️ **Repeatable** — after a firmware upgrade wipes everything, just run it again to restore in one shot
 - 🪶 **Local-only services** — none of the installed apps open outbound tunnels on their own
 
@@ -58,10 +58,10 @@ One command · Official sources · Zero cloud components
 
 | Component | Source | Version policy |
 |------|------|----------|
-| iStore app store (`luci-app-store`) | Official `istore.linkease.com` | 🔄 latest in the repo |
+| iStore app store (`luci-app-store`) | Official `istore.istoreos.com` | 🔄 latest in the repo |
 | iStore-style homepage (`luci-app-quickstart` + zh-cn pack) | Official iStore source | 🔄 latest |
 | SFTP backend (`openssh-sftp-server`, local service) | Official OpenWrt source | 🔄 latest |
-| Argon theme + config plugin + zh-cn pack | Official `github.com/jerrykuku` | 📌 pinned to v2.3.2 (see below) |
+| Argon theme + config plugin | Official `github.com/jerrykuku` | 📌 both pinned to v2.4.7 (see below) |
 | Timezone | — | set to `Asia/Shanghai` (remove if unwanted) |
 | LuCI theme / language | — | switched to Argon + Chinese (only when the theme installed OK) |
 
@@ -90,25 +90,25 @@ When it finishes, **log out and back into LuCI** (a hard refresh with `Ctrl + F5
 A firmware upgrade (especially a clean flash without keeping settings) **wipes the overlay** — iStore, Argon and all apps disappear. This script is built exactly for that: **just run it again after the upgrade to restore everything in one shot**.
 
 - iStore and apps → installed to their **latest** versions from the new firmware's sources
-- Argon → reinstalled at **v2.3.2** (the latest available under opkg)
+- Argon → reinstalled at the script's pinned **v2.4.7**
 - SFTP backend `openssh-sftp-server` → explicitly reinstalled
 
 > ⚠️ Even if you choose "keep settings" during the upgrade, `/etc/config/*` mostly survives, but **packages installed via opkg usually do not**. After upgrading, verify your firewall and other critical config first, then run this script to restore the apps.
 
 ---
 
-## 🎨 About the Argon Version (Why Pinned to v2.3.2)
+## 🎨 About the Argon Version
 
-Since **OpenWrt 25.12**, the package manager switched from `opkg` to `apk`. jerrykuku adjusted accordingly:
+Argon currently publishes both `.ipk` and `.apk` packages. Your GL official OpenWrt 24 firmware still uses `opkg`, so the script installs these two IPKs from the same release:
 
-> **From v2.4.3 onward, Argon only ships `.apk` and no longer provides `_all.ipk`.**
+- `luci-theme-argon_2.4.7_all.ipk`
+- `luci-app-argon-config_2.4.7_all.ipk`
 
-Your GL official OpenWrt 24 is still **opkg**-based, therefore:
+Keeping the theme and configuration plugin on the same version avoids feature differences caused by pairing a new theme with an old configuration plugin.
 
-- ✅ `v2.3.2` is the last version with an `_all.ipk`, i.e. **the latest Argon installable under opkg**
-- ❌ Newer v2.4.3+ are `.apk`, which opkg cannot install
+The current GL/OpenWrt/iStore OP24 feeds do not contain `luci-theme-argon` or `luci-app-argon-config`, and jerrykuku does not provide a `Packages.gz` feed that opkg can consume directly. Argon therefore cannot track the repository version in the same way as QuickStart or SFTP. The script pins a verified version so a GitHub Release layout or filename change cannot suddenly break installation; Release assets and OP24 compatibility are checked before the pinned version is updated.
 
-So pinning to v2.3.2 is **not laziness — there simply is no newer ipk upstream**. Once GL firmware moves to the apk system (OpenWrt 25.12+), this will be updated separately.
+> ℹ️ Upstream currently provides no `.ipk` for the Argon Config Simplified Chinese translation. The Argon configuration page may therefore appear in English on OP24; theme and configuration functionality are unaffected, and the script does not mix apk packages into an opkg system.
 
 ---
 
@@ -167,7 +167,7 @@ rm -f /usr/bin/g
 
 | Project | Link |
 |------|------|
-| 🛒 iStore | [linkease/istore](https://github.com/linkease/istore) (official `istore.linkease.com`) |
+| 🛒 iStore | [linkease/istore](https://github.com/linkease/istore) (official `istore.istoreos.com`) |
 | 🎨 Argon theme | [jerrykuku/luci-theme-argon](https://github.com/jerrykuku/luci-theme-argon) · [luci-app-argon-config](https://github.com/jerrykuku/luci-app-argon-config) |
 
 ---
