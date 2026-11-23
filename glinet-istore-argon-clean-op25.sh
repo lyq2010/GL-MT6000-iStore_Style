@@ -51,20 +51,8 @@ check_uci() {
 check_uci first
 
 work=$(mktemp -d /tmp/glinet-istore-op25.XXXXXX) || fail '无法创建临时工作目录。'
-arch_added=0
-istore_started=0
 cleanup() {
     status=$?
-    if [ "$arch_added" -eq 1 ] && [ "$istore_started" -eq 0 ]; then
-        if cmp -s "$work/arch.expected" /etc/apk/arch; then
-            cat "$work/arch.original" > /etc/apk/arch ||
-                printf '%s\n' '警告：恢复 APK 架构列表失败，请手动检查 /etc/apk/arch。' >&2
-        else
-            printf '%s\n' '警告：APK 架构列表已被其他进程改动，未覆盖其更改。' >&2
-        fi
-    elif [ "$status" -ne 0 ] && [ "$istore_started" -eq 1 ]; then
-        printf '%s\n' '部分软件包可能已安装，保留 APK 兼容架构；请检查上面的错误后再重试。' >&2
-    fi
     rm -rf "$work"
     return "$status"
 }
@@ -154,7 +142,9 @@ fi
 step '检查原厂及 iStore APK 软件源和依赖'
 native_apk update || fail '原厂 APK 软件源更新失败；不会继续安装。'
 native_packages add --simulate || fail '原厂软件源无法解析 LuCI、SFTP 或 Outline 依赖。'
-set -- luci-lib-taskd luci-lib-xterm taskd luci-app-store luci-app-quickstart luci-i18n-quickstart-zh-cn
+set -- luci-lib-taskd luci-lib-xterm taskd luci-app-store
+# QuickStart 暂停安装；保留 iStore 商店。
+# set -- "$@" luci-app-quickstart luci-i18n-quickstart-zh-cn
 [ -s /usr/lib/lua/luci/cbi.lua ] || set -- "$@" luci-compat
 istore_apk update || fail 'iStore APK 软件源更新或签名校验失败。'
 
@@ -170,25 +160,12 @@ if [ "$outline_needed" -eq 1 ]; then
         fail 'Outline APK 的 SHA-256 与官方发行记录不符。'
 fi
 
-step '检查 QuickStart 兼容架构与 iStore 依赖'
-# The official aarch64_cortex-a53/archlist.conf declares aarch64_generic.
-# The signed QuickStart backend is aarch64_generic; APK add uses /etc/apk/arch.
-if ! grep -Fxq aarch64_generic /etc/apk/arch; then
-    cp /etc/apk/arch "$work/arch.original" || fail '无法备份 APK 架构列表。'
-    { cat "$work/arch.original" && printf '\naarch64_generic\n'; } > "$work/arch.expected" ||
-        fail '无法准备 APK 兼容架构列表。'
-    cmp -s "$work/arch.original" /etc/apk/arch || fail 'APK 架构列表被其他进程改动。'
-    # Preserve the existing contents and the primary architecture.
-    printf '\naarch64_generic\n' >> /etc/apk/arch || fail '无法添加 APK 兼容架构。'
-    arch_added=1
-fi
-istore_apk add --simulate "$@" || fail 'iStore / QuickStart 依赖预检失败；不会强行安装。'
+istore_apk add --simulate "$@" || fail 'iStore 依赖预检失败；不会强行安装。'
 
-step '补齐标准 LuCI，并安装 SFTP、iStore 与 QuickStart'
+step '补齐标准 LuCI，并安装 SFTP 与 iStore'
 native_packages add || fail '安装原厂 LuCI 或 SFTP 组件失败。'
-istore_started=1
-istore_apk add "$@" || fail '安装 iStore 或 QuickStart 失败。'
-for pkg in "$@" quickstart openssh-sftp-server luci-mod-admin-full luci-mod-system luci-mod-status luci-mod-network \
+istore_apk add "$@" || fail '安装 iStore 失败。'
+for pkg in "$@" openssh-sftp-server luci-mod-admin-full luci-mod-system luci-mod-status luci-mod-network \
     luci-i18n-base-zh-cn luci-app-firewall luci-i18n-firewall-zh-cn luci-app-package-manager luci-i18n-package-manager-zh-cn \
     luci-proto-ppp luci-proto-ipv6 rpcd-mod-rrdns luci-theme-bootstrap; do
     offline_apk info -e "$pkg" >/dev/null 2>&1 || fail "未确认 $pkg 已安装。"
@@ -237,4 +214,4 @@ uci -t "$work/uci" commit system || fail '提交时区配置失败。'
     fail '未确认 LuCI 或时区配置已提交。'
 /etc/init.d/rpcd reload || fail 'LuCI 设置已保存，但 RPC 服务重载失败。'
 /etc/init.d/system reload || fail '时区已保存，但系统服务重载失败。'
-printf '\n安装完成。退出并重新登录 LuCI 查看 Outline，并从 LuCI 菜单打开 iStore / QuickStart。\n'
+printf '\n安装完成。退出并重新登录 LuCI 查看 Outline，并从 LuCI 菜单打开 iStore。\n'
