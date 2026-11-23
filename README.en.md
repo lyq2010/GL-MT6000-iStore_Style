@@ -12,12 +12,12 @@ One command · Official sources · Zero cloud components
 
 ![Platform](https://img.shields.io/badge/Platform-GL.iNet%20MT6000-2D7FF9?style=for-the-badge&logo=openwrt&logoColor=white)
 ![Arch](https://img.shields.io/badge/Arch-aarch64-3DDC84?style=for-the-badge)
-![Firmware](https://img.shields.io/badge/OpenWrt%2024.x-opkg-00B5E2?style=for-the-badge&logo=openwrt&logoColor=white)
+![Firmware](https://img.shields.io/badge/OpenWrt-24%20opkg%20%7C%2025%20APK-00B5E2?style=for-the-badge&logo=openwrt&logoColor=white)
 ![Shell](https://img.shields.io/badge/Shell-POSIX%20sh-4EAA25?style=for-the-badge&logo=gnubash&logoColor=white)
 
 ![Privacy](https://img.shields.io/badge/Privacy-zero%20cloud%20components-FF4088?style=flat-square)
 ![Source](https://img.shields.io/badge/Sources-all%20official-blueviolet?style=flat-square)
-![Theme](https://img.shields.io/badge/Argon-v2.4.7-7C4DFF?style=flat-square)
+![Theme](https://img.shields.io/badge/Argon-2.4.7%20%7C%202.4.8--r2-7C4DFF?style=flat-square)
 ![Repeatable](https://img.shields.io/badge/after%20firmware%20upgrade-one--shot%20restore-orange?style=flat-square)
 [![License](https://img.shields.io/github/license/lyq2010/GL-MT6000-iStore_Style?style=flat-square)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/lyq2010/GL-MT6000-iStore_Style?style=flat-square&logo=github)](https://github.com/lyq2010/GL-MT6000-iStore_Style/stargazers)
@@ -34,11 +34,11 @@ One command · Official sources · Zero cloud components
 
 ## ✨ Key Features
 
-- 🧩 **iStore app store** + iStoreOS-style homepage (`:8080`)
-- 🎨 **Purple Argon theme** — from the official `jerrykuku` repo, not a third-party unsigned package
+- 🧩 **iStore app store** + iStoreOS-style homepage (OP24: `:8080`; OP25: LuCI menu)
+- 🎨 **Purple Argon theme** — from the official `jerrykuku` repo, OP25 checks the release SHA-256 before installation
 - 🔒 **Privacy first** — no firewall changes, no cloud tunneling, no DNS hijacking, no branding fields written
 - 📡 **Transparent sources** — iStore from the official `iStoreOS` feed, theme from `jerrykuku`, apps from official sources
-- ♻️ **Repeatable** — after a firmware upgrade wipes everything, just run it again to restore in one shot
+- ♻️ **Repeatable** — after a firmware upgrade, verify the version and rerun the matching script
 - 🪶 **Local-only services** — none of the installed apps open outbound tunnels on their own
 
 ---
@@ -47,14 +47,30 @@ One command · Official sources · Zero cloud components
 
 | Item | Requirement |
 |------|------|
-| Device | GL.iNet **GL-MT6000** (Flint 2) and other **aarch64** models |
-| Firmware | GL.iNet official **OpenWrt 24** (**opkg**-based) |
+| OP25 / APK | GL.iNet **GL-MT6000** (Flint 2), official **OpenWrt 25.12**, and **apk-tools 3.x**; use the new script below |
+| OP24 / opkg | Official GL.iNet **OpenWrt 24**; keep using the original script |
 | Access | SSH root access |
 | Network | The router itself can reach GitHub (a proxy may be needed in mainland China, see below) |
 
 ---
 
-## 📦 What It Installs
+## 🚀 OP25 / APK One-Click Install
+
+This script installs apps; **it does not flash firmware**. Back up your configuration and confirm that the GL-MT6000 is already running **GL.iNet's official OP25 firmware** and has completed its first boot. Then run as root over SSH:
+
+```sh
+f="$(mktemp /tmp/glinet-op25.XXXXXX)" && { curl -fsSL https://raw.githubusercontent.com/lyq2010/GL-MT6000-iStore_Style/main/glinet-istore-argon-clean-op25.sh -o "$f" && sh "$f"; rc=$?; rm -f "$f"; (exit "$rc"); }
+```
+
+- Installs official iStore, QuickStart and the QuickStart / LuCI Chinese translations, plus the native OpenSSH SFTP backend, which does not start a standalone server. Installs the pinned [Argon 2.4.8-r2](https://github.com/jerrykuku/luci-theme-argon/releases/tag/v2.4.8) theme, config plugin and Simplified Chinese APK. This release fixes the OpenWrt 25.12 ucode compatibility issue. The official theme package may set the default theme in its install hook. The script does not overwrite a conflicting theme or downgrade a newer release.
+- QuickStart requires the `aarch64_generic` backend. The script **appends** that architecture to `/etc/apk/arch` if needed, as specified in iStore's official architecture list. It preserves the primary `aarch64_cortex-a53` architecture. If a check fails before iStore installation starts, it attempts to undo the append. Once installation starts, partial installs are possible, so it keeps the architecture and does not roll back packages.
+- Does not replace the system repositories or disable signature checks globally. The script uses an official iStore key in a temporary directory for verification; the official iStore package itself installs its own public key and `compat.list`. Only after all three Argon files match the release SHA-256 digests does the script allow their one-time offline install.
+- Does not change network, firewall, or DNS settings, or install ddnsto/cloud tunneling. QuickStart still needs the storage tools declared in its package dependencies. After signing back into LuCI, use its menu to open iStore / QuickStart. The script sets LuCI to Simplified Chinese and Argon, and the timezone to `Asia/Shanghai`.
+- The official **4.11.1-op25 Beta 1, OpenWrt 25.12.6** image and the iStore / QuickStart and Argon dependency plans were checked offline. **Installation on physical hardware has not been tested.** If a repository, signature or dependency check fails, stop rather than forcing an install or retrying with the OP24 script.
+
+---
+
+## 📦 What the Original OP24 / opkg Script Installs
 
 | Component | Source | Version policy |
 |------|------|----------|
@@ -67,7 +83,7 @@ One command · Official sources · Zero cloud components
 
 ---
 
-## 🚀 Quick Start
+## 🚀 OP24 / opkg Quick Start
 
 After logging into the router via SSH, fetch and run in one line:
 
@@ -87,7 +103,7 @@ When it finishes, **log out and back into LuCI** (a hard refresh with `Ctrl + F5
 
 ## 🔁 Restoring After a Firmware Upgrade
 
-A firmware upgrade (especially a clean flash without keeping settings) **wipes the overlay** — iStore, Argon and all apps disappear. This script is built exactly for that: **just run it again after the upgrade to restore everything in one shot**.
+After upgrading, check the firmware version and your network and firewall settings. If you moved to OP25, reinstall apps with the APK script above. Do not restore the entire OP24 overlay, opkg repositories, or package database to OP25. If staying on OP24, you can reinstall as follows:
 
 - iStore and apps → installed to their **latest** versions from the new firmware's sources
 - Argon → reinstalled at the script's pinned **v2.4.7**
@@ -119,7 +135,7 @@ The current GL/OpenWrt/iStore OP24 feeds do not contain `luci-theme-argon` or `l
 
 <br/>
 
-This script **only swaps components for clean sources; it does not undo changes such a script already made**. To clean up fully, run the following as needed (for the firewall line, first determine main-router vs. bypass-router):
+This section is for **OP24 / opkg** only and is not an OP25 migration step. The installer does not undo changes made by other one-click scripts. To clean up, run the following as needed (for the firewall line, first determine main-router vs. bypass-router):
 
 ```sh
 # 1) WAN firewall: revert ACCEPT (first confirm @zone[1] is wan)

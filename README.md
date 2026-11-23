@@ -12,12 +12,12 @@
 
 ![Platform](https://img.shields.io/badge/Platform-GL.iNet%20MT6000-2D7FF9?style=for-the-badge&logo=openwrt&logoColor=white)
 ![Arch](https://img.shields.io/badge/Arch-aarch64-3DDC84?style=for-the-badge)
-![Firmware](https://img.shields.io/badge/OpenWrt%2024.x-opkg-00B5E2?style=for-the-badge&logo=openwrt&logoColor=white)
+![Firmware](https://img.shields.io/badge/OpenWrt-24%20opkg%20%7C%2025%20APK-00B5E2?style=for-the-badge&logo=openwrt&logoColor=white)
 ![Shell](https://img.shields.io/badge/Shell-POSIX%20sh-4EAA25?style=for-the-badge&logo=gnubash&logoColor=white)
 
 ![Privacy](https://img.shields.io/badge/隐私-零云端组件-FF4088?style=flat-square)
 ![Source](https://img.shields.io/badge/来源-全部官方-blueviolet?style=flat-square)
-![Theme](https://img.shields.io/badge/Argon-v2.4.7-7C4DFF?style=flat-square)
+![Theme](https://img.shields.io/badge/Argon-2.4.7%20%7C%202.4.8--r2-7C4DFF?style=flat-square)
 ![Repeatable](https://img.shields.io/badge/固件升级后-可一键恢复-orange?style=flat-square)
 [![License](https://img.shields.io/github/license/lyq2010/GL-MT6000-iStore_Style?style=flat-square)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/lyq2010/GL-MT6000-iStore_Style?style=flat-square&logo=github)](https://github.com/lyq2010/GL-MT6000-iStore_Style/stargazers)
@@ -34,11 +34,11 @@
 
 ## ✨ 核心特性
 
-- 🧩 **iStore 应用商店** + iStoreOS 风格首页（`:8080`）
-- 🎨 **紫色 Argon 主题** —— 来自官方 `jerrykuku` 仓库，非第三方无签名包
+- 🧩 **iStore 应用商店** + iStoreOS 风格首页（OP24：`:8080`；OP25：LuCI 菜单）
+- 🎨 **紫色 Argon 主题** —— 来自官方 `jerrykuku` 仓库，OP25 安装前校验官方发行 SHA-256
 - 🔒 **隐私优先** —— 不改防火墙、不装云端穿透、不劫持 DNS、不写品牌字段
 - 📡 **来源透明** —— iStore 走 `iStoreOS` 官方源，主题走 `jerrykuku`，应用走官方源
-- ♻️ **可重复执行** —— 固件升级清空后，再跑一遍即可一键恢复
+- ♻️ **可重复执行** —— 固件升级后，确认版本并重跑对应脚本
 - 🪶 **纯本地服务** —— 装的应用没有任何会主动向外建隧道的云端组件
 
 ---
@@ -47,14 +47,30 @@
 
 | 项目 | 要求 |
 |------|------|
-| 机型 | GL.iNet **GL-MT6000**（Flint 2）等 **aarch64** 机型 |
-| 固件 | GL.iNet 官方 **OpenWrt 24**（**opkg** 体系） |
+| OP25 / APK | GL.iNet 原厂 **GL-MT6000**（Flint 2）+ **OpenWrt 25.12** + **apk-tools 3.x**，使用下方新脚本 |
+| OP24 / opkg | GL.iNet 原厂 **OpenWrt 24**，继续使用原脚本 |
 | 权限 | SSH root 访问 |
 | 网络 | 路由器本机能访问 GitHub（国内可能需走代理，见下文） |
 
 ---
 
-## 📦 它会安装什么
+## 🚀 OP25 / APK 一键安装
+
+这是应用安装脚本，**不刷固件**。先备份配置，确认 GL-MT6000 已运行 **GL.iNet 官方 OP25 固件**并完成首次启动，再通过 SSH 以 root 身份执行：
+
+```sh
+f="$(mktemp /tmp/glinet-op25.XXXXXX)" && { curl -fsSL https://raw.githubusercontent.com/lyq2010/GL-MT6000-iStore_Style/main/glinet-istore-argon-clean-op25.sh -o "$f" && sh "$f"; rc=$?; rm -f "$f"; (exit "$rc"); }
+```
+
+- 安装官方 iStore、QuickStart 和中文包，以及原厂软件源的 OpenSSH SFTP 底层组件（不会额外启动独立服务器）。应用主题前安装并验证 [Argon 2.4.8-r2](https://github.com/jerrykuku/luci-theme-argon/releases/tag/v2.4.8) 的主题、配置插件和简体中文 APK；该版修复 OpenWrt 25.12 的 ucode 兼容问题。官方主题包的安装钩子可能设置默认主题。脚本不会覆盖冲突主题或降级较新版本。
+- QuickStart 后端使用 `aarch64_generic`。如有需要，脚本按 iStore 官方架构清单向 `/etc/apk/arch` **追加**这一项，保留原来的 `aarch64_cortex-a53`。实际安装 iStore 前失败会尝试撤回本次追加；一旦开始安装，可能存在部分已安装的包，兼容架构会保留，不自动回滚软件包。
+- 不替换系统软件源或全局关闭签名校验。脚本验证 iStore 源时仅临时使用官方公钥；iStore 软件包自身会安装官方公钥和 `compat.list`。Argon 三个文件在 SHA-256 匹配官方发行记录后才启用一次离线本地安装，不对在线源放宽校验。
+- 不改网络、防火墙或 DNS，不安装 ddnsto 等云端穿透组件；QuickStart 本身仍有其声明的存储工具依赖。完成后，重新登录 LuCI，从菜单进入 iStore / QuickStart。LuCI 使用中文与 Argon，时区设为 `Asia/Shanghai`。
+- 已对官方 **4.11.1-op25 Beta 1，OpenWrt 25.12.6** 做离线固件检查及 iStore / QuickStart 和 Argon 的依赖求解，**未在实体路由器安装验证**。源、签名或依赖检查失败会停止；不要改用 OP24 脚本或强制覆盖来绕过失败。
+
+---
+
+## 📦 原 OP24 / opkg 脚本安装内容
 
 | 组件 | 来源 | 版本策略 |
 |------|------|----------|
@@ -67,7 +83,7 @@
 
 ---
 
-## 🚀 快速开始
+## 🚀 OP24 / opkg 快速开始
 
 SSH 登录路由器后，一行拉取并执行：
 
@@ -87,7 +103,7 @@ curl -fsSL https://raw.githubusercontent.com/lyq2010/GL-MT6000-iStore_Style/main
 
 ## 🔁 固件升级后如何恢复
 
-固件升级（尤其是不保留配置的全新刷写）会**清空 overlay**，iStore、Argon、各应用都会消失 —— 本脚本正是为此设计：**升级后再跑一遍即可一键恢复**。
+固件升级后，先确认固件版本、网络和防火墙配置。切换到 OP25 后用上面的 APK 脚本重装应用，不要把 OP24 的 opkg 软件源、软件包状态或 overlay 整体还原到 OP25。继续使用 OP24 时，可按下方说明重装：
 
 - iStore 与各应用 → 跟随新固件的源装到对应**最新版**
 - Argon → 装回脚本固定的 **v2.4.7**
@@ -108,7 +124,7 @@ Argon 上游目前同时发布 `.ipk` 和 `.apk`。你的 GL 官方 OpenWrt 24 �
 
 当前 GL/OpenWrt/iStore 的 OP24 软件源没有收录 `luci-theme-argon` 和 `luci-app-argon-config`，jerrykuku 也没有提供可直接交给 opkg 使用的 `Packages.gz` 软件源，因此 Argon 无法像 QuickStart 或 SFTP 那样由软件源自动选择最新版。脚本固定经过核对的版本，避免 GitHub Release 结构或文件名变化导致安装突然失效；升级固定版本前会先核对 Release 资产与 OP24 兼容性。
 
-> ℹ️ 上游目前没有提供 Argon Config 简体中文翻译的 `.ipk`。因此 OP24 上的 Argon 配置页可能显示英文；主题和配置功能不受影响，脚本不会在 opkg 系统中混装 apk。
+> ℹ️ OP24 原脚本未安装 Argon Config 简体中文包，配置页可能显示英文；主题和配置功能不受影响，脚本不会在 opkg 系统中混装 apk。
 
 ---
 
@@ -119,7 +135,7 @@ Argon 上游目前同时发布 `.ipk` 和 `.apk`。你的 GL 官方 OpenWrt 24 �
 
 <br/>
 
-本脚本**只负责把组件换成干净来源，并不会撤销这类脚本已做过的改动**。要清干净，按需手动执行（防火墙那条先判断主路由 / 旁路由）：
+下面只供 **OP24 / opkg** 用户参考，不属于 OP25 迁移步骤。脚本**不会撤销其他一键脚本已做过的改动**。要清干净，按需手动执行（防火墙那条先判断主路由 / 旁路由）：
 
 ```sh
 # 1) WAN 防火墙：撤回 ACCEPT（先确认 @zone[1] 是 wan）
@@ -153,13 +169,13 @@ rm -f /usr/bin/g
 
 ---
 
-## ⚠️ 注意事项
+## ⚠️ OP24 注意事项
 
 | | 说明 |
 |---|---|
 | 🧪 **beta 固件** | GL 官方 OpenWrt 24 仍是 beta（kernel 6.6），不在同类一键脚本的官方支持范围。iStore 与 Argon 实测可用；个别应用偶发依赖错误时，按提示重试一次通常即可。 |
 | 🧬 **架构** | 仅适配 aarch64（MT6000 / MT3000 / MT2500）。iStore 官方源只支持 x86_64 / arm64。 |
-| 🌍 **GitHub 访问** | 国内路由器本机直连 GitHub 常失败，按「快速开始」里的提示走代理或手动上传。 |
+| 🌍 **GitHub 访问** | 国内路由器本机直连 GitHub 常失败，按对应版本的安装说明走代理或手动上传。 |
 
 ---
 
