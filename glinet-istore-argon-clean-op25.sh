@@ -34,7 +34,7 @@ IFS= read -r arch < /etc/apk/arch || fail '无法读取原生 APK 架构。'
 command -v uci >/dev/null 2>&1 || fail '找不到 uci。'
 command -v sha256sum >/dev/null 2>&1 || fail '找不到 sha256sum。'
 if ! command -v curl >/dev/null 2>&1 && ! command -v wget >/dev/null 2>&1; then
-    fail '需要固件自带 wget 或 curl 下载 Argon。'
+    fail '需要固件自带 wget 或 curl 下载 Outline。'
 fi
 
 check_uci() {
@@ -42,8 +42,8 @@ check_uci() {
     if [ "$1" = ready ]; then
         uci -q get luci.main >/dev/null || fail '未找到标准 LuCI 配置，停止设置主题。'
     fi
-    for config in luci system; do
-        [ "$config" != luci ] || [ -f /etc/config/luci ] || continue
+    for config in luci system outline uhttpd; do
+        [ -f "/etc/config/$config" ] || continue
         pending=$(uci -q changes "$config") || fail "无法检查 $config 的待提交配置。"
         [ -z "$pending" ] || fail "$config 有待提交改动，请先保存或撤销。"
     done
@@ -131,42 +131,44 @@ offline_apk() {
     APK_CONFIG=/dev/null apk --network=no --cache=no --repositories-file /dev/null "$@"
 }
 
-if offline_apk info -e luci-theme-argon-master >/dev/null 2>&1; then
-    fail '已安装冲突主题 luci-theme-argon-master。请先备份并手动移除该主题，不会自动覆盖。'
+native_packages() {
+    native_apk "$@" openssh-sftp-server luci-mod-admin-full luci-i18n-base-zh-cn \
+        luci-app-firewall luci-i18n-firewall-zh-cn luci-app-package-manager luci-i18n-package-manager-zh-cn \
+        luci-proto-ppp luci-proto-ipv6 rpcd-mod-rrdns luci-theme-bootstrap \
+        rpcd-mod-ucode ucode-mod-fs ucode-mod-uci uclient-fetch jsonfilter
+}
+
+outline_pkg=luci-theme-outline
+outline_version=1.5.0-r20261120
+outline_file="$outline_pkg-$outline_version.apk"
+outline_url="https://github.com/tickcount/luci-theme-outline/releases/download/v1.5.0/$outline_file"
+outline_sha=018bc0ff1c220adf44cfa2dc20ca51e7ab49aa582b4d520e581e156750befe57
+outline_needed=1
+if offline_apk info -e "$outline_pkg>$outline_version" >/dev/null 2>&1; then
+    outline_needed=0
+    step '保留已经安装的较新 Outline，不降级'
+elif [ -e /etc/outline ] || [ -L /etc/outline ]; then
+    fail '检测到旧版 Outline 数据 /etc/outline。新主题安装钩子会删除此目录；请先备份并移走，再重试。'
 fi
-for pkg in luci-theme-argon luci-app-argon-config; do
-    if offline_apk info -e "$pkg>2.4.8-r2" >/dev/null 2>&1; then
-        fail "已安装 $pkg 的较新版本，本脚本不会降级。"
-    fi
-done
 
 step '检查原厂及 iStore APK 软件源和依赖'
 native_apk update || fail '原厂 APK 软件源更新失败；不会继续安装。'
-native_apk add --simulate jsonfilter openssh-sftp-server luci-i18n-base-zh-cn || fail '原厂软件源无法解析 SFTP、LuCI 中文包或 Argon 依赖。'
+native_packages add --simulate || fail '原厂软件源无法解析 LuCI、SFTP 或 Outline 依赖。'
 set -- luci-lib-taskd luci-lib-xterm taskd luci-app-store luci-app-quickstart luci-i18n-quickstart-zh-cn
 [ -s /usr/lib/lua/luci/cbi.lua ] || set -- "$@" luci-compat
 istore_apk update || fail 'iStore APK 软件源更新或签名校验失败。'
 
-step '下载并校验官方 Argon APK'
-argon_base=https://github.com/jerrykuku/luci-theme-argon/releases/download/v2.4.8
-theme=luci-theme-argon-2.4.8-r2.apk
-theme_config=luci-app-argon-config-2.4.8-r2.apk
-theme_lang=luci-i18n-argon-config-zh-cn-26.281.11209.9bafffa.apk
-download() {
+if [ "$outline_needed" -eq 1 ]; then
+    step '下载并校验官方 Outline APK'
     if command -v curl >/dev/null 2>&1; then
-        curl -fLsS --proto '=https' --proto-redir '=https' --connect-timeout 20 --max-time 120 -o "$2" "$1"
+        curl -fLsS --proto '=https' --proto-redir '=https' --connect-timeout 20 --max-time 120 -o "$work/$outline_file" "$outline_url" ||
+            fail "下载 Outline 失败：$outline_url"
     else
-        wget -T 30 -O "$2" "$1"
+        wget -T 30 -O "$work/$outline_file" "$outline_url" || fail "下载 Outline 失败：$outline_url"
     fi
-}
-fetch_argon() {
-    download "$argon_base/$1" "$work/$1" || fail "下载 $1 失败：$argon_base/$1"
-    printf '%s  %s\n' "$2" "$work/$1" | sha256sum -c - >/dev/null ||
-        fail "$1 的 SHA-256 与官方发行记录不符。"
-}
-fetch_argon "$theme" fc93eaf211c34435ad44347c66f51a6158ed3f7c009b1b17943635ae15e87f69
-fetch_argon "$theme_config" eca59b62ed78b1aa2228d9d3e86b9a05467ba9f519d71ba2519dc626bcc54843
-fetch_argon "$theme_lang" 4dbbf226d858390aa7245b5560069293ed9fe44080b5f38c02e77b213dc15e9f
+    printf '%s  %s\n' "$outline_sha" "$work/$outline_file" | sha256sum -c - >/dev/null ||
+        fail 'Outline APK 的 SHA-256 与官方发行记录不符。'
+fi
 
 step '检查 QuickStart 兼容架构与 iStore 依赖'
 # The official aarch64_cortex-a53/archlist.conf declares aarch64_generic.
@@ -182,34 +184,57 @@ if ! grep -Fxq aarch64_generic /etc/apk/arch; then
 fi
 istore_apk add --simulate "$@" || fail 'iStore / QuickStart 依赖预检失败；不会强行安装。'
 
-step '安装原厂依赖、SFTP、iStore 与 QuickStart'
-native_apk add jsonfilter openssh-sftp-server luci-i18n-base-zh-cn || fail '安装 SFTP、LuCI 中文包或 Argon 依赖失败。'
+step '补齐标准 LuCI，并安装 SFTP、iStore 与 QuickStart'
+native_packages add || fail '安装原厂 LuCI 或 SFTP 组件失败。'
 istore_started=1
 istore_apk add "$@" || fail '安装 iStore 或 QuickStart 失败。'
-for pkg in "$@" quickstart openssh-sftp-server luci-i18n-base-zh-cn; do
+for pkg in "$@" quickstart openssh-sftp-server luci-mod-admin-full luci-mod-system luci-mod-status luci-mod-network \
+    luci-i18n-base-zh-cn luci-app-firewall luci-i18n-firewall-zh-cn luci-app-package-manager luci-i18n-package-manager-zh-cn \
+    luci-proto-ppp luci-proto-ipv6 rpcd-mod-rrdns luci-theme-bootstrap; do
     offline_apk info -e "$pkg" >/dev/null 2>&1 || fail "未确认 $pkg 已安装。"
 done
 
-step '离线安装已校验的 Argon APK'
-# Both package trust bypass and local file paths are limited to this transaction.
-offline_apk add --allow-untrusted "$work/$theme" "$work/$theme_config" "$work/$theme_lang" ||
-    fail 'Argon 安装失败，停止后续 LuCI 与时区配置。'
-offline_apk info -e 'luci-theme-argon=2.4.8-r2' 'luci-app-argon-config=2.4.8-r2' \
-    luci-i18n-argon-config-zh-cn >/dev/null 2>&1 && [ -d /www/luci-static/argon ] ||
-    fail '未确认 Argon 主题及配置已正确安装。'
+if [ "$outline_needed" -eq 1 ]; then
+    step '离线安装已校验的 Outline APK'
+    check_uci ready
+    # Preseed the upstream install hook's auto-update choice only when unset.
+    # A pinned install must not add a cron job; preserve explicit choices.
+    if [ -z "$(uci -q get outline.updates.auto)" ]; then
+        [ ! -L /etc/config/outline ] || fail 'Outline 配置是符号链接，停止。'
+        if [ ! -f /etc/config/outline ]; then
+            [ ! -e /etc/config/outline ] && : > /etc/config/outline || fail '无法创建 Outline 配置。'
+        fi
+        if ! uci -q get outline.updates >/dev/null; then
+            uci -t "$work/uci" set 'outline.updates=updates' || fail '无法准备 Outline 更新设置。'
+        fi
+        uci -t "$work/uci" set 'outline.updates.auto=0' || fail '无法关闭 Outline 默认自动更新。'
+        uci -t "$work/uci" commit outline || fail '无法提交 Outline 更新设置。'
+        [ "$(uci -q get outline.updates.auto)" = 0 ] || fail '未确认 Outline 默认自动更新已关闭。'
+    fi
+    # Only the pinned, SHA-256-verified local APK can use this offline exception.
+    offline_apk add --allow-untrusted "$work/$outline_file" || fail '安装 Outline 失败，停止后续设置。'
+    outline_installed="$outline_pkg=$outline_version"
+else
+    outline_installed="$outline_pkg>$outline_version"
+fi
+offline_apk info -e "$outline_installed" >/dev/null 2>&1 && [ -d /www/luci-static/outline ] ||
+    fail '未确认 Outline 主题已正确安装。'
 
 step '应用 LuCI 主题、中文与时区'
 check_uci ready
-uci -t "$work/uci" set 'luci.main.mediaurlbase=/luci-static/argon' || fail '设置 LuCI 主题失败。'
+uci -t "$work/uci" set 'luci.themes.Outline=/luci-static/outline' || fail '注册 Outline 主题失败。'
+uci -t "$work/uci" set 'luci.main.mediaurlbase=/luci-static/outline' || fail '设置 LuCI 主题失败。'
 uci -t "$work/uci" set 'luci.main.lang=zh_cn' || fail '设置 LuCI 语言失败。'
 uci -t "$work/uci" set 'system.@system[0].zonename=Asia/Shanghai' || fail '设置时区名称失败。'
 uci -t "$work/uci" set 'system.@system[0].timezone=CST-8' || fail '设置时区失败。'
 uci -t "$work/uci" commit luci || fail '提交 LuCI 配置失败。'
 uci -t "$work/uci" commit system || fail '提交时区配置失败。'
-[ "$(uci -q get luci.main.mediaurlbase)" = /luci-static/argon ] &&
+[ "$(uci -q get luci.themes.Outline)" = /luci-static/outline ] &&
+    [ "$(uci -q get luci.main.mediaurlbase)" = /luci-static/outline ] &&
     [ "$(uci -q get luci.main.lang)" = zh_cn ] &&
     [ "$(uci -q get 'system.@system[0].zonename')" = Asia/Shanghai ] &&
     [ "$(uci -q get 'system.@system[0].timezone')" = CST-8 ] ||
     fail '未确认 LuCI 或时区配置已提交。'
+/etc/init.d/rpcd reload || fail 'LuCI 设置已保存，但 RPC 服务重载失败。'
 /etc/init.d/system reload || fail '时区已保存，但系统服务重载失败。'
-printf '\n安装完成。退出并重新登录 LuCI 查看 Argon，并从 LuCI 菜单打开 iStore / QuickStart。\n'
+printf '\n安装完成。退出并重新登录 LuCI 查看 Outline，并从 LuCI 菜单打开 iStore / QuickStart。\n'

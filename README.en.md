@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🛡️ GL-MT6000 · Clean iStore + Argon
+# 🛡️ GL-MT6000 · Clean iStore + LuCI Themes
 
 **Turn your GL.iNet router into an iStoreOS-style UI — without any privacy aftermath**
 
@@ -17,7 +17,7 @@ One command · Official sources · Zero cloud components
 
 ![Privacy](https://img.shields.io/badge/Privacy-zero%20cloud%20components-FF4088?style=flat-square)
 ![Source](https://img.shields.io/badge/Sources-all%20official-blueviolet?style=flat-square)
-![Theme](https://img.shields.io/badge/Argon-2.4.7%20%7C%202.4.8--r2-7C4DFF?style=flat-square)
+![Theme](https://img.shields.io/badge/Theme-Outline%20(OP25)%20%7C%20Argon%20(OP24)-7C4DFF?style=flat-square)
 ![Repeatable](https://img.shields.io/badge/after%20firmware%20upgrade-one--shot%20restore-orange?style=flat-square)
 [![License](https://img.shields.io/github/license/lyq2010/GL-MT6000-iStore_Style?style=flat-square)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/lyq2010/GL-MT6000-iStore_Style?style=flat-square&logo=github)](https://github.com/lyq2010/GL-MT6000-iStore_Style/stargazers)
@@ -27,7 +27,7 @@ One command · Official sources · Zero cloud components
 
 ---
 
-> Same result as the popular "one-click iStoreOS styling" (iStore store + styled homepage + purple Argon theme),
+> Same result as the popular "one-click iStoreOS styling" (iStore store + styled homepage + LuCI theme),
 > but **without the side effects that silently rewrite your firewall, install remote access, or hijack DNS** — every component comes from an **official source**.
 
 ---
@@ -35,9 +35,9 @@ One command · Official sources · Zero cloud components
 ## ✨ Key Features
 
 - 🧩 **iStore app store** + iStoreOS-style homepage (OP24: `:8080`; OP25: LuCI menu)
-- 🎨 **Purple Argon theme** — from the official `jerrykuku` repo, OP25 checks the release SHA-256 before installation
+- 🎨 **Outline on OP25, Argon on OP24.** OP25 restores the standard LuCI administration pages and verifies the upstream theme APK against its release SHA-256.
 - 🔒 **Privacy first** — no firewall changes, no cloud tunneling, no DNS hijacking, no branding fields written
-- 📡 **Transparent sources** — iStore from the official `iStoreOS` feed, theme from `jerrykuku`, apps from official sources
+- 📡 **Transparent sources** — iStore and apps from their official feeds, themes from the Outline or Argon upstream project
 - ♻️ **Repeatable** — after a firmware upgrade, verify the version and rerun the matching script
 - 🪶 **Local-only services** — none of the installed apps open outbound tunnels on their own
 
@@ -59,14 +59,19 @@ One command · Official sources · Zero cloud components
 This script installs apps; **it does not flash firmware**. Back up your configuration and confirm that the GL-MT6000 is already running **GL.iNet's official OP25 firmware** and has completed its first boot. Then run as root over SSH:
 
 ```sh
-f="$(mktemp /tmp/glinet-op25.XXXXXX)" && { curl -fsSL https://raw.githubusercontent.com/lyq2010/GL-MT6000-iStore_Style/main/glinet-istore-argon-clean-op25.sh -o "$f" && sh "$f"; rc=$?; rm -f "$f"; (exit "$rc"); }
+(f=$(mktemp /tmp/glinet-op25.XXXXXX) && trap 'rm -f "$f"' EXIT &&
+  curl -fsSL https://raw.githubusercontent.com/lyq2010/GL-MT6000-iStore_Style/main/glinet-istore-argon-clean-op25.sh -o "$f" &&
+  sh "$f")
 ```
 
-- Installs official iStore, QuickStart and the QuickStart / LuCI Chinese translations, plus the native OpenSSH SFTP backend, which does not start a standalone server. Installs the pinned [Argon 2.4.8-r2](https://github.com/jerrykuku/luci-theme-argon/releases/tag/v2.4.8) theme, config plugin and Simplified Chinese APK. This release fixes the OpenWrt 25.12 ucode compatibility issue. The official theme package may set the default theme in its install hook. The script does not overwrite a conflicting theme or downgrade a newer release.
-- QuickStart requires the `aarch64_generic` backend. The script **appends** that architecture to `/etc/apk/arch` if needed, as specified in iStore's official architecture list. It preserves the primary `aarch64_cortex-a53` architecture. If a check fails before iStore installation starts, it attempts to undo the append. Once installation starts, partial installs are possible, so it keeps the architecture and does not roll back packages.
-- Does not replace the system repositories or disable signature checks globally. The script uses an official iStore key in a temporary directory for verification; the official iStore package itself installs its own public key and `compat.list`. Only after all three Argon files match the release SHA-256 digests does the script allow their one-time offline install.
-- Does not change network, firewall, or DNS settings, or install ddnsto/cloud tunneling. QuickStart still needs the storage tools declared in its package dependencies. After signing back into LuCI, use its menu to open iStore / QuickStart. The script sets LuCI to Simplified Chinese and Argon, and the timezone to `Asia/Shanghai`.
-- The official **4.11.1-op25 Beta 1, OpenWrt 25.12.6** image and the iStore / QuickStart and Argon dependency plans were checked offline. **Installation on physical hardware has not been tested.** If a repository, signature or dependency check fails, stop rather than forcing an install or retrying with the OP24 script.
+**Use the same command for a fresh install or an existing OP25 installation.** There is no need to remove iStore or QuickStart. An existing Argon installation and its settings stay in place; you can switch back under System → System → Language and Style. For OP24, use the original script below.
+
+- **Restores the LuCI administration pages.** Installs `luci-mod-admin-full` (Status, System, and Network), PPPoE / IPv6 support in LuCI, the firewall and package manager views, and Simplified Chinese translations from the GL.iNet firmware feed. The package manager and iStore are separate. Also installs the native OpenSSH SFTP backend without starting a standalone server. Bootstrap is installed as a fallback theme.
+- **Uses [Outline v1.5.0](https://github.com/tickcount/luci-theme-outline/releases/tag/v1.5.0).** The pinned `1.5.0-r20261120` APK is checked against the upstream release SHA-256 and installed offline, without weakening global signature checks. An already installed newer version is not downgraded. The default unattended updater is disabled if unset; an existing preference is preserved. The upstream theme may set the `uhttpd` root index and reload the service, but does not change its ports or TLS settings. LuCI is set to Simplified Chinese and the timezone to `Asia/Shanghai`.
+- **Preserves existing repository settings.** The installer temporarily uses the original feed files and public keys from the read-only `/rom` filesystem, plus official iStore indexes. The live overlay files such as `/etc/apk/repositories.d/distfeeds.list` (including any CERNET mirror configuration) are neither used for this install nor replaced. The iStore package itself installs its own public key and `compat.list`.
+- **QuickStart architecture and dependencies.** Adds iStore's required `aarch64_generic` to `/etc/apk/arch` only if missing, preserving the primary `aarch64_cortex-a53` architecture. If a check fails before iStore installation starts, the script attempts to undo the append. Once installation starts, it can leave partially installed packages and does not roll them back. QuickStart still needs its declared storage tools. The installer does not change network or DNS settings or firewall rules, and does not install ddnsto or other cloud tunneling components.
+- **“Detecting” is not proof that WAN is offline.** This QuickStart version checks for `packages.adb.asc` at the feed in the current overlay. On the checked GL.iNet 25.12.6 feed, that URL returned 404 while the actual `packages.adb` index was available. The separately checked CERNET mirror configuration returned 404 for a real `packages.adb` index; a normal `apk update` can still fail if you retain that configuration. That is a mirror index issue, not the QuickStart false alarm or a PPPoE failure. If internet access and APK indexes work, don't change WAN, DNS, or repositories just to clear the indicator. The installer does not hide it.
+- The verification baseline is the official **4.11.1-op25 Beta 1, OpenWrt 25.12.6** image. **This revision has not been tested on physical hardware.** If a feed, signature, or dependency check fails, do not force the install or switch to the OP24 script.
 
 ---
 
@@ -113,7 +118,7 @@ After upgrading, check the firmware version and your network and firewall settin
 
 ---
 
-## 🎨 About the Argon Version
+## 🎨 Argon on OP24
 
 Argon currently publishes both `.ipk` and `.apk` packages. Your GL official OpenWrt 24 firmware still uses `opkg`, so the script installs these two IPKs from the same release:
 
@@ -124,7 +129,7 @@ Keeping the theme and configuration plugin on the same version avoids feature di
 
 The current GL/OpenWrt/iStore OP24 feeds do not contain `luci-theme-argon` or `luci-app-argon-config`, and jerrykuku does not provide a `Packages.gz` feed that opkg can consume directly. Argon therefore cannot track the repository version in the same way as QuickStart or SFTP. The script pins a verified version so a GitHub Release layout or filename change cannot suddenly break installation; Release assets and OP24 compatibility are checked before the pinned version is updated.
 
-> ℹ️ Upstream currently provides no `.ipk` for the Argon Config Simplified Chinese translation. The Argon configuration page may therefore appear in English on OP24; theme and configuration functionality are unaffected, and the script does not mix apk packages into an opkg system.
+> ℹ️ The original OP24 script does not install the Argon Config Simplified Chinese translation. The Argon configuration page may therefore appear in English on OP24; theme and configuration functionality are unaffected, and the script does not mix apk packages into an opkg system.
 
 ---
 
@@ -184,7 +189,8 @@ rm -f /usr/bin/g
 | Project | Link |
 |------|------|
 | 🛒 iStore | [linkease/istore](https://github.com/linkease/istore) (official `istore.istoreos.com`) |
-| 🎨 Argon theme | [jerrykuku/luci-theme-argon](https://github.com/jerrykuku/luci-theme-argon) · [luci-app-argon-config](https://github.com/jerrykuku/luci-app-argon-config) |
+| 🎨 Outline (OP25) | [tickcount/luci-theme-outline](https://github.com/tickcount/luci-theme-outline) |
+| 🎨 Argon (OP24) | [jerrykuku/luci-theme-argon](https://github.com/jerrykuku/luci-theme-argon) · [luci-app-argon-config](https://github.com/jerrykuku/luci-app-argon-config) |
 
 ---
 

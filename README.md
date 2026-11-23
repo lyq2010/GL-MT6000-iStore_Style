@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🛡️ GL-MT6000 · 干净版 iStore + Argon
+# 🛡️ GL-MT6000 · 干净版 iStore + LuCI 主题
 
 **把 GL.iNet 路由器变成 iStoreOS 风格 —— 却不留任何隐私后患**
 
@@ -17,7 +17,7 @@
 
 ![Privacy](https://img.shields.io/badge/隐私-零云端组件-FF4088?style=flat-square)
 ![Source](https://img.shields.io/badge/来源-全部官方-blueviolet?style=flat-square)
-![Theme](https://img.shields.io/badge/Argon-2.4.7%20%7C%202.4.8--r2-7C4DFF?style=flat-square)
+![Theme](https://img.shields.io/badge/Theme-Outline%20(OP25)%20%7C%20Argon%20(OP24)-7C4DFF?style=flat-square)
 ![Repeatable](https://img.shields.io/badge/固件升级后-可一键恢复-orange?style=flat-square)
 [![License](https://img.shields.io/github/license/lyq2010/GL-MT6000-iStore_Style?style=flat-square)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/lyq2010/GL-MT6000-iStore_Style?style=flat-square&logo=github)](https://github.com/lyq2010/GL-MT6000-iStore_Style/stargazers)
@@ -27,7 +27,7 @@
 
 ---
 
-> 效果等同主流的「一键 iStoreOS 风格化」（iStore 商店 + 风格首页 + 紫色 Argon 主题），
+> 效果等同主流的「一键 iStoreOS 风格化」（iStore 商店 + 风格首页 + LuCI 主题），
 > 但**去掉了那些悄悄改防火墙、装远程访问、劫持 DNS 的副作用**，所有组件均来自**官方源**。
 
 ---
@@ -35,9 +35,9 @@
 ## ✨ 核心特性
 
 - 🧩 **iStore 应用商店** + iStoreOS 风格首页（OP24：`:8080`；OP25：LuCI 菜单）
-- 🎨 **紫色 Argon 主题** —— 来自官方 `jerrykuku` 仓库，OP25 安装前校验官方发行 SHA-256
+- 🎨 **OP25 使用 Outline，OP24 继续使用 Argon**。OP25 补齐 LuCI 标准管理界面，主题 APK 安装前校验上游发行的 SHA-256。
 - 🔒 **隐私优先** —— 不改防火墙、不装云端穿透、不劫持 DNS、不写品牌字段
-- 📡 **来源透明** —— iStore 走 `iStoreOS` 官方源，主题走 `jerrykuku`，应用走官方源
+- 📡 **来源透明** —— iStore 和应用使用官方源，主题分别来自 Outline 或 Argon 的上游仓库
 - ♻️ **可重复执行** —— 固件升级后，确认版本并重跑对应脚本
 - 🪶 **纯本地服务** —— 装的应用没有任何会主动向外建隧道的云端组件
 
@@ -59,14 +59,19 @@
 这是应用安装脚本，**不刷固件**。先备份配置，确认 GL-MT6000 已运行 **GL.iNet 官方 OP25 固件**并完成首次启动，再通过 SSH 以 root 身份执行：
 
 ```sh
-f="$(mktemp /tmp/glinet-op25.XXXXXX)" && { curl -fsSL https://raw.githubusercontent.com/lyq2010/GL-MT6000-iStore_Style/main/glinet-istore-argon-clean-op25.sh -o "$f" && sh "$f"; rc=$?; rm -f "$f"; (exit "$rc"); }
+(f=$(mktemp /tmp/glinet-op25.XXXXXX) && trap 'rm -f "$f"' EXIT &&
+  curl -fsSL https://raw.githubusercontent.com/lyq2010/GL-MT6000-iStore_Style/main/glinet-istore-argon-clean-op25.sh -o "$f" &&
+  sh "$f")
 ```
 
-- 安装官方 iStore、QuickStart 和中文包，以及原厂软件源的 OpenSSH SFTP 底层组件（不会额外启动独立服务器）。应用主题前安装并验证 [Argon 2.4.8-r2](https://github.com/jerrykuku/luci-theme-argon/releases/tag/v2.4.8) 的主题、配置插件和简体中文 APK；该版修复 OpenWrt 25.12 的 ucode 兼容问题。官方主题包的安装钩子可能设置默认主题。脚本不会覆盖冲突主题或降级较新版本。
-- QuickStart 后端使用 `aarch64_generic`。如有需要，脚本按 iStore 官方架构清单向 `/etc/apk/arch` **追加**这一项，保留原来的 `aarch64_cortex-a53`。实际安装 iStore 前失败会尝试撤回本次追加；一旦开始安装，可能存在部分已安装的包，兼容架构会保留，不自动回滚软件包。
-- 不替换系统软件源或全局关闭签名校验。脚本验证 iStore 源时仅临时使用官方公钥；iStore 软件包自身会安装官方公钥和 `compat.list`。Argon 三个文件在 SHA-256 匹配官方发行记录后才启用一次离线本地安装，不对在线源放宽校验。
-- 不改网络、防火墙或 DNS，不安装 ddnsto 等云端穿透组件；QuickStart 本身仍有其声明的存储工具依赖。完成后，重新登录 LuCI，从菜单进入 iStore / QuickStart。LuCI 使用中文与 Argon，时区设为 `Asia/Shanghai`。
-- 已对官方 **4.11.1-op25 Beta 1，OpenWrt 25.12.6** 做离线固件检查及 iStore / QuickStart 和 Argon 的依赖求解，**未在实体路由器安装验证**。源、签名或依赖检查失败会停止；不要改用 OP24 脚本或强制覆盖来绕过失败。
+**全新安装和前版 OP25 用户都用这条命令。** 已装的 iStore 和 QuickStart 无需先卸载。旧 Argon 与其配置会保留，可在「系统 → 系统 → 语言和界面」切回。OP24 用户请使用下方原脚本。
+
+- **补齐 LuCI 管理页面。** 从 GL 原厂 APK 源安装 `luci-mod-admin-full`（状态、系统、网络模块）及 PPPoE / IPv6 界面、防火墙界面、软件包界面和简体中文包。软件包页面与 iStore 是两个入口。另安装原厂 OpenSSH SFTP 底层组件，不额外启动独立服务器。 保留 Bootstrap 作为备用主题。
+- **主题换成 [Outline v1.5.0](https://github.com/tickcount/luci-theme-outline/releases/tag/v1.5.0)。** APK 固定为 `1.5.0-r20261120`，按上游发布的 SHA-256 校验后离线安装，不放宽全局签名规则。已装更高版本时保留，不降级。脚本关闭未设置的默认自动更新，不覆盖已有选择。主题包的上游安装钩子可能为网站根路径调整 `uhttpd` 的首页并重载服务，不改端口或 TLS 设置。LuCI 设为简体中文，时区设为 `Asia/Shanghai`。
+- **保留现有软件源。** 安装临时读取只读固件 `/rom` 内的原厂软件源和公钥，另加官方 iStore 索引。现有 `/etc/apk/repositories.d/distfeeds.list` 等 overlay 配置（包括自行配置的 CERNET 镜像）不会被替换，也不会用于此安装。iStore 官方包自身会安装公钥和 `compat.list`。
+- **QuickStart 的兼容架构和依赖。** 按 iStore 官方清单，仅在缺少时向 `/etc/apk/arch` 追加 `aarch64_generic`，保留 `aarch64_cortex-a53`。如果 iStore 安装尚未开始就失败，会尝试撤回本次追加；安装开始后可能留下部分软件包，不自动回滚。QuickStart 仍会安装它声明的存储工具依赖。脚本不改网络、DNS 或防火墙规则，不安装 ddnsto 等云端穿透组件。
+- **首页一直“检测中”不等于断网。** 此版本 QuickStart 会用当前 overlay 里的源路径请求 `packages.adb.asc`。在已核对的 GL 25.12.6 原厂源上，该地址返回 404，真正的 APK 索引 `packages.adb` 正常。已核对的 CERNET 镜像配置另有真正的 `packages.adb` 返回 404；如果保留该配置，普通 `apk update` 仍可能失败。这是镜像索引问题，不是 QuickStart 误报或 PPPoE 故障。若实际能上网且索引可访问，不要为了提示改 WAN、DNS 或软件源。脚本不会隐藏提示。
+- 以官方 **4.11.1-op25 Beta 1，OpenWrt 25.12.6** 为核对基线。**新版脚本未在实体路由器实测**。若源、签名或依赖检查失败，不要强制安装或改跑 OP24 脚本。
 
 ---
 
@@ -113,7 +118,7 @@ curl -fsSL https://raw.githubusercontent.com/lyq2010/GL-MT6000-iStore_Style/main
 
 ---
 
-## 🎨 关于 Argon 版本
+## 🎨 OP24 的 Argon 版本
 
 Argon 上游目前同时发布 `.ipk` 和 `.apk`。你的 GL 官方 OpenWrt 24 仍使用 `opkg`，因此脚本安装同一 Release 中的两个 IPK：
 
@@ -184,7 +189,8 @@ rm -f /usr/bin/g
 | 项目 | 链接 |
 |------|------|
 | 🛒 iStore | [linkease/istore](https://github.com/linkease/istore)（官方 `istore.istoreos.com`） |
-| 🎨 Argon 主题 | [jerrykuku/luci-theme-argon](https://github.com/jerrykuku/luci-theme-argon) · [luci-app-argon-config](https://github.com/jerrykuku/luci-app-argon-config) |
+| 🎨 Outline（OP25） | [tickcount/luci-theme-outline](https://github.com/tickcount/luci-theme-outline) |
+| 🎨 Argon（OP24） | [jerrykuku/luci-theme-argon](https://github.com/jerrykuku/luci-theme-argon) · [luci-app-argon-config](https://github.com/jerrykuku/luci-app-argon-config) |
 
 ---
 
