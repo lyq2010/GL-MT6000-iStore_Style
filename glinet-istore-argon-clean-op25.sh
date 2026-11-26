@@ -123,20 +123,40 @@ native_packages() {
     native_apk "$@" openssh-sftp-server luci-mod-admin-full luci-i18n-base-zh-cn \
         luci-app-firewall luci-i18n-firewall-zh-cn luci-app-package-manager luci-i18n-package-manager-zh-cn \
         luci-proto-ppp luci-proto-ipv6 rpcd-mod-rrdns luci-theme-bootstrap \
-        rpcd-mod-ucode ucode-mod-fs ucode-mod-uci uclient-fetch jsonfilter
+        rpcd-mod-ucode ucode-mod-fs ucode-mod-uci
 }
 
 outline_pkg=luci-theme-outline
-outline_version=1.5.0-r20261120
-outline_file="$outline_pkg-$outline_version.apk"
-outline_url="https://github.com/tickcount/luci-theme-outline/releases/download/v1.5.0/$outline_file"
-outline_sha=018bc0ff1c220adf44cfa2dc20ca51e7ab49aa582b4d520e581e156750befe57
+outline_repo=lyq2010/lees-outline
+fetch_outline() {
+    if command -v curl >/dev/null 2>&1; then
+        curl -fLsS --proto '=https' --proto-redir '=https' --connect-timeout 20 --max-time 120 -o "$2" "$1" ||
+            fail "下载 Outline 失败：$1"
+    else
+        wget -T 30 -O "$2" "$1" || fail "下载 Outline 失败：$1"
+    fi
+}
+resolve_outline_release() {
+    # Exactly one versioned APK from this repository's latest stable release.
+    # Pin the subsequent download to that tag so a concurrent release cannot mix files.
+    outline_metadata=$(awk 'NF == 2 && length($1) == 64 && $1 !~ /[^0-9a-fA-F]/ &&
+        $2 ~ /^luci-theme-outline-[0-9]+\.[0-9]+\.[0-9]+-r[0-9]+\.apk$/ { n++; item=$1 " " $2 }
+        END { if (n != 1) exit 1; print item }' "$1") ||
+        fail '最新正式版缺少唯一有效的 Outline APK 与 SHA256。'
+    outline_sha=${outline_metadata%% *}
+    outline_file=${outline_metadata#* }
+    outline_version=${outline_file#luci-theme-outline-}
+    outline_version=${outline_version%.apk}
+    outline_url="https://github.com/$outline_repo/releases/download/v${outline_version%-r*}/$outline_file"
+}
+step '读取本账户 Outline 最新正式版'
+fetch_outline "https://github.com/$outline_repo/releases/latest/download/sha256sums.txt" "$work/outline-sha256sums.txt"
+resolve_outline_release "$work/outline-sha256sums.txt"
+printf 'Outline 最新正式版：%s\n' "$outline_version"
 outline_needed=1
-if offline_apk info -e "$outline_pkg>$outline_version" >/dev/null 2>&1; then
+if offline_apk info -e "$outline_pkg>=$outline_version" >/dev/null 2>&1; then
     outline_needed=0
-    step '保留已经安装的较新 Outline，不降级'
-elif [ -e /etc/outline ] || [ -L /etc/outline ]; then
-    fail '检测到旧版 Outline 数据 /etc/outline。新主题安装钩子会删除此目录；请先备份并移走，再重试。'
+    step '已安装相同或更新的 Outline，保留现有版本'
 fi
 
 step '检查原厂及 iStore APK 软件源和依赖'
@@ -149,15 +169,10 @@ set -- luci-lib-taskd luci-lib-xterm taskd luci-app-store
 istore_apk update || fail 'iStore APK 软件源更新或签名校验失败。'
 
 if [ "$outline_needed" -eq 1 ]; then
-    step '下载并校验官方 Outline APK'
-    if command -v curl >/dev/null 2>&1; then
-        curl -fLsS --proto '=https' --proto-redir '=https' --connect-timeout 20 --max-time 120 -o "$work/$outline_file" "$outline_url" ||
-            fail "下载 Outline 失败：$outline_url"
-    else
-        wget -T 30 -O "$work/$outline_file" "$outline_url" || fail "下载 Outline 失败：$outline_url"
-    fi
+    step '下载并校验本账户维护的 Outline 最新正式版 APK'
+    fetch_outline "$outline_url" "$work/$outline_file"
     printf '%s  %s\n' "$outline_sha" "$work/$outline_file" | sha256sum -c - >/dev/null ||
-        fail 'Outline APK 的 SHA-256 与官方发行记录不符。'
+        fail 'Outline APK 的 SHA-256 与该发行版校验记录不符。'
 fi
 
 istore_apk add --simulate "$@" || fail 'iStore 依赖预检失败；不会强行安装。'
@@ -174,25 +189,13 @@ done
 if [ "$outline_needed" -eq 1 ]; then
     step '离线安装已校验的 Outline APK'
     check_uci ready
-    # Preseed the upstream install hook's auto-update choice only when unset.
-    # A pinned install must not add a cron job; preserve explicit choices.
-    if [ -z "$(uci -q get outline.updates.auto)" ]; then
-        [ ! -L /etc/config/outline ] || fail 'Outline 配置是符号链接，停止。'
-        if [ ! -f /etc/config/outline ]; then
-            [ ! -e /etc/config/outline ] && : > /etc/config/outline || fail '无法创建 Outline 配置。'
-        fi
-        if ! uci -q get outline.updates >/dev/null; then
-            uci -t "$work/uci" set 'outline.updates=updates' || fail '无法准备 Outline 更新设置。'
-        fi
-        uci -t "$work/uci" set 'outline.updates.auto=0' || fail '无法关闭 Outline 默认自动更新。'
-        uci -t "$work/uci" commit outline || fail '无法提交 Outline 更新设置。'
-        [ "$(uci -q get outline.updates.auto)" = 0 ] || fail '未确认 Outline 默认自动更新已关闭。'
-    fi
-    # Only the pinned, SHA-256-verified local APK can use this offline exception.
+    [ ! -L /etc/config/outline ] || fail 'Outline 配置是符号链接，停止。'
+    # This maintained build has no updater; its upgrade hook removes old schedules.
+    # Only this release's SHA-256-verified local APK can use the offline exception.
     offline_apk add --allow-untrusted "$work/$outline_file" || fail '安装 Outline 失败，停止后续设置。'
     outline_installed="$outline_pkg=$outline_version"
 else
-    outline_installed="$outline_pkg>$outline_version"
+    outline_installed="$outline_pkg>=$outline_version"
 fi
 offline_apk info -e "$outline_installed" >/dev/null 2>&1 && [ -d /www/luci-static/outline ] ||
     fail '未确认 Outline 主题已正确安装。'

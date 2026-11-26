@@ -4,7 +4,7 @@
 
 **把 GL.iNet 路由器变成 iStoreOS 风格 —— 却不留任何隐私后患**
 
-一行命令 · 官方来源 · 零云端组件
+一行命令 · 来源透明 · 零云端组件
 
 **简体中文** · [English](README.en.md)
 
@@ -16,7 +16,7 @@
 ![Shell](https://img.shields.io/badge/Shell-POSIX%20sh-4EAA25?style=for-the-badge&logo=gnubash&logoColor=white)
 
 ![Privacy](https://img.shields.io/badge/隐私-零云端组件-FF4088?style=flat-square)
-![Source](https://img.shields.io/badge/来源-全部官方-blueviolet?style=flat-square)
+![Source](https://img.shields.io/badge/来源-透明可查-blueviolet?style=flat-square)
 ![Theme](https://img.shields.io/badge/Theme-Outline%20(OP25)%20%7C%20Argon%20(OP24)-7C4DFF?style=flat-square)
 ![Repeatable](https://img.shields.io/badge/固件升级后-可一键恢复-orange?style=flat-square)
 [![License](https://img.shields.io/github/license/lyq2010/GL-MT6000-iStore_Style?style=flat-square)](LICENSE)
@@ -28,7 +28,7 @@
 ---
 
 > 一键安装 iStore 商店与 LuCI 主题，OP24 另带 iStoreOS 风格首页，
-> 但**去掉了那些悄悄改防火墙、装远程访问、劫持 DNS 的副作用**，所有组件均来自**官方源**。
+> 但**去掉了那些悄悄改防火墙、装远程访问、劫持 DNS 的副作用**，iStore 和系统组件使用**官方源**，OP25 主题使用本账户维护仓库。
 
 ---
 
@@ -37,7 +37,7 @@
 - 🧩 **iStore 应用商店**；OP24 另有 iStoreOS 风格首页（`:8080`）
 - 🎨 **OP25 使用 Outline，OP24 继续使用 Argon**。OP25 补齐 LuCI 标准管理界面。
 - 🔒 **隐私优先** —— 不改防火墙、不装云端穿透、不劫持 DNS、不写品牌字段
-- 📡 **来源透明** —— iStore 和应用使用官方源，主题分别来自 Outline 或 Argon 的上游仓库
+- 📡 **来源透明** —— iStore 和应用使用官方源，OP25 主题来自本账户维护的 lees-outline，OP24 使用 Argon 上游仓库
 - ♻️ **可重复执行** —— 固件升级后，确认版本并重跑对应脚本
 - 🪶 **纯本地服务** —— 装的应用没有任何会主动向外建隧道的云端组件
 
@@ -62,7 +62,8 @@
 curl -fsSL https://raw.githubusercontent.com/lyq2010/GL-MT6000-iStore_Style/main/glinet-istore-argon-clean-op25.sh -o /tmp/clean-op25.sh && sh /tmp/clean-op25.sh
 ```
 
-- **装完重新打开 LuCI**：默认使用 [Outline 1.5.0](https://github.com/tickcount/luci-theme-outline/releases/tag/v1.5.0)，首次安装关闭主题自动更新。包含简体中文、状态／系统／网络标准菜单、防火墙、软件包管理、iStore 商店和 SFTP。
+- **装完重新打开 LuCI**：默认使用 [lees-outline 最新正式版](https://github.com/lyq2010/lees-outline/releases/latest)，包含 OpenClash 兼容修复且已移除主题自主更新器。包含简体中文、状态／系统／网络标准菜单、防火墙、软件包管理、iStore 商店和 SFTP。
+- **后续主题升级无需修改脚本**：每次手动运行读取本仓库主题的最新正式 Release 校验清单，锁定该版本地址下载并核验 SHA256；相同或更新的已安装版本予以保留。无后台更新或第三方下载镜像。
 - **旧版 OP25 用户可直接重跑**：保留已有 Argon 和软件源。此版暂不安装 QuickStart 首页，也不会自动卸载已有的 QuickStart。
 
 ---
@@ -181,7 +182,7 @@ rm -f /usr/bin/g
 | 项目 | 链接 |
 |------|------|
 | 🛒 iStore | [linkease/istore](https://github.com/linkease/istore)（官方 `istore.istoreos.com`） |
-| 🎨 Outline（OP25） | [tickcount/luci-theme-outline](https://github.com/tickcount/luci-theme-outline) |
+| 🎨 Outline（OP25） | [lyq2010/lees-outline](https://github.com/lyq2010/lees-outline)，基于 [tickcount/luci-theme-outline](https://github.com/tickcount/luci-theme-outline) |
 | 🎨 Argon（OP24） | [jerrykuku/luci-theme-argon](https://github.com/jerrykuku/luci-theme-argon) · [luci-app-argon-config](https://github.com/jerrykuku/luci-app-argon-config) |
 
 ---

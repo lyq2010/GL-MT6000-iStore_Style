@@ -4,7 +4,7 @@
 
 **Turn your GL.iNet router into an iStoreOS-style UI — without any privacy aftermath**
 
-One command · Official sources · Zero cloud components
+One command · Transparent sources · Zero cloud components
 
 [简体中文](README.md) · **English**
 
@@ -16,7 +16,7 @@ One command · Official sources · Zero cloud components
 ![Shell](https://img.shields.io/badge/Shell-POSIX%20sh-4EAA25?style=for-the-badge&logo=gnubash&logoColor=white)
 
 ![Privacy](https://img.shields.io/badge/Privacy-zero%20cloud%20components-FF4088?style=flat-square)
-![Source](https://img.shields.io/badge/Sources-all%20official-blueviolet?style=flat-square)
+![Source](https://img.shields.io/badge/Sources-transparent-blueviolet?style=flat-square)
 ![Theme](https://img.shields.io/badge/Theme-Outline%20(OP25)%20%7C%20Argon%20(OP24)-7C4DFF?style=flat-square)
 ![Repeatable](https://img.shields.io/badge/after%20firmware%20upgrade-one--shot%20restore-orange?style=flat-square)
 [![License](https://img.shields.io/github/license/lyq2010/GL-MT6000-iStore_Style?style=flat-square)](LICENSE)
@@ -28,7 +28,7 @@ One command · Official sources · Zero cloud components
 ---
 
 > Install the iStore app store and a LuCI theme in one command, with an iStore-style homepage on OP24,
-> but **without the side effects that silently rewrite your firewall, install remote access, or hijack DNS** — every component comes from an **official source**.
+> but **without the side effects that silently rewrite your firewall, install remote access, or hijack DNS** — iStore and system components use **official sources**, while the OP25 theme comes from this account’s maintained repository.
 
 ---
 
@@ -37,7 +37,7 @@ One command · Official sources · Zero cloud components
 - 🧩 **iStore app store**, plus an iStoreOS-style homepage on OP24 (`:8080`)
 - 🎨 **Outline on OP25, Argon on OP24.** OP25 restores the standard LuCI administration pages.
 - 🔒 **Privacy first** — no firewall changes, no cloud tunneling, no DNS hijacking, no branding fields written
-- 📡 **Transparent sources** — iStore and apps from their official feeds, themes from the Outline or Argon upstream project
+- 📡 **Transparent sources** — iStore and apps from their official feeds, the OP25 theme from the maintained lees-outline repository and OP24 Argon from its upstream project
 - ♻️ **Repeatable** — after a firmware upgrade, verify the version and rerun the matching script
 - 🪶 **Local-only services** — none of the installed apps open outbound tunnels on their own
 
@@ -62,7 +62,8 @@ On a router already running official GL.iNet OP25 firmware, run this as root ove
 curl -fsSL https://raw.githubusercontent.com/lyq2010/GL-MT6000-iStore_Style/main/glinet-istore-argon-clean-op25.sh -o /tmp/clean-op25.sh && sh /tmp/clean-op25.sh
 ```
 
-- **Reopen LuCI after installation.** The default theme is [Outline 1.5.0](https://github.com/tickcount/luci-theme-outline/releases/tag/v1.5.0), with theme auto-updates off on a fresh install. You get Simplified Chinese, the standard Status, System, and Network menus, firewall and package management, the iStore app store, and SFTP.
+- **Reopen LuCI after installation.** The default theme is [the latest stable lees-outline release](https://github.com/lyq2010/lees-outline/releases/latest), with OpenClash compatibility fixes and the theme updater removed. You get Simplified Chinese, the standard Status, System, and Network menus, firewall and package management, the iStore app store, and SFTP.
+- **Future theme releases need no script edit.** Each manual run resolves the latest stable release, downloads from its immutable version tag, and verifies SHA256. An equal or newer installed version is kept; there is no background updater or third-party mirror.
 - **Existing OP25 users can rerun the script.** It keeps Argon and existing package sources. This version skips the QuickStart dashboard and does not remove an existing QuickStart installation.
 
 ---
@@ -181,7 +182,7 @@ rm -f /usr/bin/g
 | Project | Link |
 |------|------|
 | 🛒 iStore | [linkease/istore](https://github.com/linkease/istore) (official `istore.istoreos.com`) |
-| 🎨 Outline (OP25) | [tickcount/luci-theme-outline](https://github.com/tickcount/luci-theme-outline) |
+| 🎨 Outline (OP25) | [lyq2010/lees-outline](https://github.com/lyq2010/lees-outline), based on [tickcount/luci-theme-outline](https://github.com/tickcount/luci-theme-outline) |
 | 🎨 Argon (OP24) | [jerrykuku/luci-theme-argon](https://github.com/jerrykuku/luci-theme-argon) · [luci-app-argon-config](https://github.com/jerrykuku/luci-app-argon-config) |
 
 ---
